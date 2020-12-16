@@ -23,7 +23,7 @@ impl Seat {
         assert_eq!(row_beg, row_end);
 
         let mut col_beg = 0;
-        let mut col_end = 8;
+        let mut col_end = 7;
         for i in 7..11 {
             match s.chars().nth(i) {
                 Some('R') => col_beg = col_beg + (col_end - col_beg) / 2 + 1,
