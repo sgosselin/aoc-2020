@@ -26,7 +26,7 @@ fn count_num_questions(path: &str) -> usize {
             .expect("could not read line from input");
         if line == "" {
             let set = calc_character_set(&buf);
-            res += .len();
+            res += set.len();
             buf.clear();
         } else {
             buf.push_str(&line);
