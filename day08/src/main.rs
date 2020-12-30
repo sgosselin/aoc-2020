@@ -3,12 +3,21 @@ use std::io::BufReader;
 use std::io::prelude::*;
 use std::fs::File;
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 enum Opcode {
     Nop(i32),
     Acc(i32),
     Jmp(i32),
 }
+
+fn opcode_to_str(op: Opcode) -> String {
+    return match op {
+        Opcode::Nop(num) => format!("nop {:4}", num),
+        Opcode::Acc(num) => format!("acc {:4}", num),
+        Opcode::Jmp(num) => format!("jmp {:4}", num),
+    };
+}
+
 
 #[derive(Debug)]
 struct Machine {
@@ -49,13 +58,31 @@ impl Machine {
         };
     }
 
+    /// Resets the machine internal state, except for the program.
+    pub fn reset(&mut self) {
+        self.reg_acc = 0;
+        self.reg_pc = 0;
+
+        for i in 0..self.program.len() {
+            self.program[i].1 = false;
+        }
+    }
+
     /// Runs until an inifinite loop has been detected.
-    pub fn run(&mut self) -> bool {
+    pub fn run(&mut self, print_log: bool) -> bool {
+        self.reset();
+
         while self.reg_pc < self.program.len() {
             let mut next_acc = self.reg_acc as i32;
             let mut next_pc = self.reg_pc as i32;
 
-            match self.program[self.reg_pc] {
+            let opcode = &self.program[self.reg_pc];
+            if print_log {
+                println!("{} |  pc={:4} acc={:4} (executed: {})",
+                    opcode_to_str(opcode.0), self.reg_pc, self.reg_acc, opcode.1);
+            }
+
+            match opcode {
                 (Opcode::Nop(_num), false) => {
                     next_pc += 1;
                 },
@@ -66,7 +93,7 @@ impl Machine {
                 (Opcode::Jmp(num), false) => {
                     next_pc += num;
                 },
-                (_, true) => {
+                (op, true) => {
                     return false;
                 },
             }
@@ -79,8 +106,51 @@ impl Machine {
         return true;
     }
 
+    /// Patches the program to run completely.
+    pub fn patch_program(&mut self) -> bool {
+        /*
+         * The program corruption is either:
+         * - A 'jmp' should have been a 'nop'
+         * - A 'nop' should have been a 'jmp'
+         *
+         * The program is small (~600 instructions), with 226 jmp
+         * and 61 nop. As such, we can brute force a solution and
+         * try to patch all possible instructions.
+         *
+         * For each instruction that can be patched, we will run the
+         * full program and check if it could complete. If not, then
+         * we revert the patch and proceed to the next instruction.
+         */
+        for i in 0..self.program.len() {
+            match self.program[i].0 {
+                Opcode::Nop(num) => {
+                    self.program[i].0 = Opcode::Jmp(num);
+                    if self.run(false) {
+                        return true;
+                    }
+                    self.program[i].0 = Opcode::Nop(num);
+                },
+                Opcode::Jmp(num) => {
+                    self.program[i].0 = Opcode::Nop(num);
+                    if self.run(false) {
+                        return true;
+                    }
+                    self.program[i].0 = Opcode::Jmp(num);
+                },
+                _ => {
+                },
+            }
+        }
+
+        return false;
+    }
+
     pub fn get_acc(&self) -> i32 {
         self.reg_acc
+    }
+
+    pub fn get_pc(&self) -> usize {
+        self.reg_pc
     }
 }
 
@@ -94,7 +164,13 @@ fn main() {
 
     let mut machine = Machine::from_file(&args[1]);
 
-    let success = machine.run();
+    println!("-- part 1 --");
+    let success = machine.run(false);
+    println!("success: {}", success);
+    println!("acc: {}", machine.get_acc());
+
+    println!("-- part 2 --");
+    let success = machine.patch_program();
     println!("success: {}", success);
     println!("acc: {}", machine.get_acc());
 }
