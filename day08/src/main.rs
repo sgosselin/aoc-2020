@@ -30,7 +30,6 @@ impl Machine {
             let num = &opcode_str[4..].parse::<i32>().
                 expect("malformed instruction (bad operand)");
 
-            // Decode the opcode.
             match &opcode_str[0..3] {
                 "acc" =>
                     program.push( (Opcode::Acc(*num), false) ),
