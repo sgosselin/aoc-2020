@@ -4,11 +4,11 @@ use std::fs::File;
 use std::io::BufReader;
 use std::io::prelude::*;
 
-#[derive(Debug)]
 /**
  * Implements circular buffer with fast lookup for item existence
  * at the expense of memory usage.
  */
+#[derive(Debug)]
 struct CircularBuffer {
     beg_index: usize,
     num_items: usize,
@@ -26,22 +26,16 @@ impl CircularBuffer {
         };
     }
 
-    /// Returns the capacity (i.e., number of items that can be stored) of
-    /// the buffer.
     pub fn capacity(&self) -> usize {
         self.buf.len()
     }
 
-    /// Returns the size (i.e., number of items) of the buffer.
     pub fn size(&self) -> usize {
         self.num_items
     }
 
-    /// Inserts a new item into the circular buffer.
     pub fn insert(&mut self, num: usize) {
-        let mut prev_item = 0;
-
-        let mut ind = 0;
+        let ind:usize;
         if self.num_items < self.buf.len() {
             ind = (self.beg_index + self.num_items) % self.buf.len();
             self.num_items += 1;
@@ -71,6 +65,34 @@ impl CircularBuffer {
     }
 }
 
+fn find_breaking_num(arr: &[usize]) -> Option<usize> {
+    let mut buf = CircularBuffer::new(25);
+
+    for num in arr {
+        if buf.size() == buf.capacity() && buf.lookup_twosum(*num).is_none() {
+            return Some(*num);
+        }
+
+        buf.insert(*num);
+    }
+
+    None
+}
+
+fn find_subarray_sums_to(arr: &[usize], to: usize) -> Option<(usize, usize)> {
+    for i in 0..arr.len() {
+        let mut sum = arr[i];
+        for j in (i + 1)..arr.len() {
+            sum += arr[j];
+            if sum == to {
+                return Some((i, j));
+            }
+        }
+    }
+
+    None
+}
+
 fn main() {
     let args:Vec<String> = env::args()
         .collect();
@@ -82,19 +104,25 @@ fn main() {
     let f = File::open(&args[1])
         .expect("could not open input file");
 
-    let mut buf = CircularBuffer::new(25);
-    for data in BufReader::new(f).lines() {
-        let num = data.unwrap()
-            .parse::<usize>()
-            .unwrap();
-        if buf.size() < buf.capacity() {
-            buf.insert(num);
-            continue;
-        } else if buf.lookup_twosum(num).is_none() {
-            println!("Found: {}", num);
-            break;
-        }
+    let input_nums:Vec<usize> = BufReader::new(f)
+        .lines()
+        .map(|line| line.unwrap().parse().unwrap())
+        .collect();
 
-        buf.insert(num);
+    let breaking_num = find_breaking_num(&input_nums)
+        .expect("could not find breaking number");
+
+    let (i, j) = find_subarray_sums_to(&input_nums, breaking_num)
+        .expect("could not find a subarray that sums to the breaking num");
+
+    // Find the min/max.
+    let mut min = usize::MAX;
+    let mut max = usize::MIN;
+    for i in &input_nums[i..j] {
+        min = std::cmp::min(min, *i);
+        max = std::cmp::max(max, *i);
     }
+
+    println!("answer part 1: {}", breaking_num);
+    println!("answer part 2: {}", min + max);
 }
