@@ -40,16 +40,10 @@ fn calc_part2(arr: &[usize]) -> usize {
     for i in 1..arr.len() {
         let mut res = 0;
 
-        if i >= 1 && (arr[i] - arr[i - 1]) <= 3 {
-            res += sol[i - 1];
-        }
-
-        if i >= 2 && (arr[i] - arr[i - 2]) <= 3 {
-            res += sol[i - 2];
-        }
-
-        if i >= 3 && (arr[i] - arr[i - 3]) <= 3 {
-            res += sol[i - 3];
+        for j in 1..=3 {
+            if i >= j && (arr[i] - arr[i - j]) <= 3 {
+                res += sol[i - j];
+            }
         }
 
         sol[i] = res;
