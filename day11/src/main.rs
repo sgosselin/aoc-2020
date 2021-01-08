@@ -61,14 +61,7 @@ impl Grid {
     }
 
     pub fn get_num_occupied(&self) -> usize {
-        let mut count = 0;
-        for i in self.data.iter() {
-            if *i == Item::Occupied {
-                count += 1;
-            }
-        }
-
-        return count;
+        self.data.iter().filter(|x| *x == &Item::Occupied).count()
     }
 
     pub fn is_equal(&self, grid: &Grid) -> bool {
